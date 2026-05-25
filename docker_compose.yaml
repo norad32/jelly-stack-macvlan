@@ -1,0 +1,148 @@
+name: jelly-stack-macvlan
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    
+    user: "1000:1000"
+      
+    volumes:  
+      - ./config:/config
+      - ./cache:/cache
+      - type: bind
+        source: ${MEDIA_FOLDER}
+        target: /media
+      - type: bind
+        source: ${MEDIA_FOLDER}2
+        target: /media2
+        read_only: true
+    restart: 'unless-stopped'
+
+    networks:
+      lan_macvlan:
+        ipv4_address: ${JELLY_FIN_IP}
+        
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    
+    hostname: qbittorrent
+    
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${JELLY_STACK_TZ}
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+      
+    volumes:
+      - ./configs/qbittorrent:/config
+      - ${MEDIA_FOLDER}/downloads:/downloads
+    restart: unless-stopped
+    
+    networks:
+      lan_macvlan:
+        ipv4_address: ${QBIT_TORRENT_IP}
+        
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${JELLY_STACK_TZ}
+    volumes:
+      - ./configs/sonarr/:/config
+      - ${MEDIA_FOLDER}/shows:/tv
+      - ${MEDIA_FOLDER}/downloads:/downloads
+    restart: unless-stopped
+    
+    networks:
+      lan_macvlan:
+        ipv4_address: ${SONARR_IP}
+ 
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${JELLY_STACK_TZ}
+    volumes:
+      - ./configs/radarr:/config
+      - ${MEDIA_FOLDER}/movies:/movies #optional
+      - ${MEDIA_FOLDER}/downloads:/downloads #optional
+    restart: unless-stopped
+    
+    networks:
+      lan_macvlan:
+        ipv4_address: ${RADARR_IP}
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${JELLY_STACK_TZ}
+    volumes:
+      - ./configs/lidarr:/config
+      - ${MEDIA_FOLDER}/music:/music #optional
+      - ${MEDIA_FOLDER}/downloads:/downloads #optional
+    restart: unless-stopped
+    
+    networks:
+      lan_macvlan:
+        ipv4_address: ${LIDARR_IP}
+        
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${JELLY_STACK_TZ}
+    volumes:
+      - ./configs/prowlarr:/config
+    restart: unless-stopped
+    
+    networks:
+      lan_macvlan:
+        ipv4_address: ${PROWLARR_IP}
+        
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=${JELLY_STACK_TZ}
+    volumes:
+      - ./configs/jellyseer:/app/config
+    restart: unless-stopped
+      
+    networks:
+      lan_macvlan:
+        ipv4_address: ${JELLY_SEER_IP}
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - LOG_FILE=none
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=${JELLY_STACK_TZ}
+    volumes:
+      - ./configs/flaresolverr:/app/config
+    restart: unless-stopped
+    
+    networks:
+      lan_macvlan:
+        ipv4_address: ${FLARE_SOLVERR_IP}
+
+networks:
+  lan_macvlan:
+    external: true
+    name: lan_macvlan
